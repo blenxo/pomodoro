@@ -1,0 +1,1735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pomodoro Study Timer</title>
+
+  <style>
+    /* =====================================================
+       Modern Pomodoro Study Timer
+       Single HTML + CSS + Vanilla JavaScript
+       ===================================================== */
+
+    :root {
+      --bg: #070914;
+      --bg-soft: #0d1020;
+      --card: rgba(255, 255, 255, 0.08);
+      --card-strong: rgba(255, 255, 255, 0.13);
+      --border: rgba(255, 255, 255, 0.14);
+      --border-strong: rgba(255, 255, 255, 0.24);
+      --text: #f7f7ff;
+      --muted: #a7b0d0;
+      --muted-2: #717b9f;
+      --accent: #84f3ff;
+      --accent-2: #9b7cff;
+      --accent-3: #ff7cd8;
+      --green: #8dffbd;
+      --yellow: #ffe28a;
+      --danger: #ff7b9c;
+      --shadow: 0 28px 90px rgba(0, 0, 0, 0.38);
+      --radius-xl: 32px;
+      --radius-lg: 24px;
+      --radius-md: 17px;
+      --ring-progress: 100;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 8%, rgba(155, 124, 255, 0.32), transparent 28%),
+        radial-gradient(circle at 88% 12%, rgba(132, 243, 255, 0.23), transparent 30%),
+        radial-gradient(circle at 50% 100%, rgba(255, 124, 216, 0.17), transparent 34%),
+        linear-gradient(135deg, #050713 0%, #0a1024 45%, #060710 100%);
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+      background-size: 54px 54px;
+      mask-image: linear-gradient(to bottom, black 0%, transparent 82%);
+      z-index: -2;
+    }
+
+    body::after {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at center, transparent 0%, rgba(0, 0, 0, 0.48) 95%);
+      z-index: -1;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button {
+      cursor: pointer;
+    }
+
+    .app {
+      width: min(1180px, calc(100% - 28px));
+      margin: 0 auto;
+      padding: 28px 0 44px;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 14px 16px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(7, 9, 20, 0.62);
+      backdrop-filter: blur(24px);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.25);
+      position: sticky;
+      top: 14px;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 11px;
+      min-width: max-content;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2), var(--accent-3));
+      color: #05101c;
+      box-shadow: 0 0 28px rgba(132, 243, 255, 0.3);
+      font-weight: 900;
+    }
+
+    .brand-title {
+      display: grid;
+      gap: 1px;
+    }
+
+    .brand-title strong {
+      letter-spacing: -0.04em;
+      font-size: 1rem;
+    }
+
+    .brand-title span {
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .chip {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 9px 12px;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.07);
+      font-size: 0.85rem;
+    }
+
+    .hero {
+      padding: 58px 0 28px;
+      display: grid;
+      grid-template-columns: 0.96fr 1.04fr;
+      gap: 22px;
+      align-items: center;
+    }
+
+    .hero-copy {
+      padding: 8px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.07);
+      color: var(--muted);
+      font-size: 0.9rem;
+      margin-bottom: 18px;
+    }
+
+    h1 {
+      font-size: clamp(2.5rem, 6vw, 5.6rem);
+      line-height: 0.92;
+      letter-spacing: -0.08em;
+      max-width: 760px;
+    }
+
+    .gradient-text {
+      background: linear-gradient(90deg, #ffffff, var(--accent), var(--accent-2), var(--accent-3));
+      -webkit-background-clip: text;
+      background-clip: text;
+      color: transparent;
+    }
+
+    .hero-copy p {
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: clamp(1rem, 1.8vw, 1.18rem);
+      margin-top: 20px;
+      max-width: 660px;
+    }
+
+    .quote-card {
+      margin-top: 22px;
+      padding: 18px 20px;
+      border: 1px solid var(--border);
+      border-left: 4px solid var(--accent);
+      border-radius: 0 var(--radius-md) var(--radius-md) 0;
+      background: rgba(255, 255, 255, 0.07);
+      color: #eef1ff;
+      line-height: 1.6;
+      max-width: 650px;
+      transition: 0.25s ease;
+    }
+
+    .timer-card {
+      position: relative;
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 38px;
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.06)),
+        rgba(255, 255, 255, 0.07);
+      backdrop-filter: blur(28px);
+      box-shadow: var(--shadow);
+      padding: clamp(20px, 4vw, 34px);
+    }
+
+    .timer-card::before {
+      content: "";
+      position: absolute;
+      width: 320px;
+      height: 320px;
+      border-radius: 50%;
+      right: -120px;
+      top: -130px;
+      background: radial-gradient(circle, rgba(132, 243, 255, 0.28), transparent 68%);
+      pointer-events: none;
+    }
+
+    .timer-card::after {
+      content: "";
+      position: absolute;
+      width: 280px;
+      height: 280px;
+      border-radius: 50%;
+      left: -140px;
+      bottom: -150px;
+      background: radial-gradient(circle, rgba(255, 124, 216, 0.2), transparent 68%);
+      pointer-events: none;
+    }
+
+    .mode-row {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+
+    .mode-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border-radius: 999px;
+      padding: 10px 13px;
+      background: rgba(132, 243, 255, 0.13);
+      color: var(--accent);
+      border: 1px solid rgba(132, 243, 255, 0.27);
+      font-weight: 750;
+    }
+
+    .round-pill {
+      border-radius: 999px;
+      padding: 10px 13px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .timer-ring-wrap {
+      position: relative;
+      z-index: 1;
+      width: min(390px, 100%);
+      aspect-ratio: 1;
+      margin: 0 auto;
+      display: grid;
+      place-items: center;
+    }
+
+    .timer-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        conic-gradient(from -90deg, var(--accent) calc(var(--ring-progress) * 1%), rgba(255, 255, 255, 0.09) 0),
+        radial-gradient(circle, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04) 62%, rgba(255, 255, 255, 0.12));
+      box-shadow:
+        0 0 34px rgba(132, 243, 255, 0.22),
+        inset 0 0 40px rgba(255, 255, 255, 0.08);
+      animation: ringGlow 3s ease-in-out infinite;
+    }
+
+    .timer-ring::before {
+      content: "";
+      position: absolute;
+      inset: 17px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 45% 30%, rgba(255, 255, 255, 0.12), transparent 25%),
+        linear-gradient(145deg, rgba(6, 8, 20, 0.94), rgba(13, 16, 32, 0.94));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .timer-content {
+      position: relative;
+      z-index: 3;
+      display: grid;
+      place-items: center;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .time-display {
+      font-size: clamp(3.4rem, 9vw, 6.1rem);
+      line-height: 1;
+      letter-spacing: -0.08em;
+      font-weight: 900;
+      text-shadow: 0 0 24px rgba(132, 243, 255, 0.2);
+    }
+
+    .session-subtitle {
+      color: var(--muted);
+      font-size: 0.98rem;
+    }
+
+    .task-box {
+      position: relative;
+      z-index: 1;
+      margin-top: 24px;
+      display: grid;
+      gap: 9px;
+    }
+
+    .task-box label {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    input,
+    select {
+      width: 100%;
+      outline: none;
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.13);
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-md);
+      padding: 13px 14px;
+      transition: 0.2s ease;
+    }
+
+    select option {
+      color: #111827;
+    }
+
+    input:focus,
+    select:focus {
+      border-color: rgba(132, 243, 255, 0.55);
+      box-shadow: 0 0 0 4px rgba(132, 243, 255, 0.08);
+    }
+
+    .controls {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 22px;
+    }
+
+    .btn {
+      border: 1px solid var(--border);
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.09);
+      border-radius: 999px;
+      padding: 12px 16px;
+      transition: 0.22s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      min-height: 45px;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      filter: brightness(1.08);
+      border-color: rgba(132, 243, 255, 0.38);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #04101d;
+      border-color: transparent;
+      font-weight: 850;
+      box-shadow: 0 0 30px rgba(132, 243, 255, 0.24);
+    }
+
+    .btn-danger {
+      background: rgba(255, 123, 156, 0.12);
+      border-color: rgba(255, 123, 156, 0.28);
+      color: #ffd8e2;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 18px;
+      margin-top: 20px;
+    }
+
+    .card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      background: var(--card);
+      backdrop-filter: blur(24px);
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.2);
+      padding: 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::after {
+      content: "";
+      position: absolute;
+      width: 220px;
+      height: 220px;
+      right: -90px;
+      bottom: -130px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(155, 124, 255, 0.17), transparent 70%);
+      pointer-events: none;
+    }
+
+    .span-4 {
+      grid-column: span 4;
+    }
+
+    .span-6 {
+      grid-column: span 6;
+    }
+
+    .span-8 {
+      grid-column: span 8;
+    }
+
+    .card-header {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      margin-bottom: 17px;
+    }
+
+    .kicker {
+      color: var(--accent);
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 800;
+      font-size: 0.72rem;
+      margin-bottom: 7px;
+    }
+
+    h2 {
+      font-size: clamp(1.35rem, 3vw, 2rem);
+      letter-spacing: -0.05em;
+      line-height: 1.05;
+    }
+
+    .card p {
+      color: var(--muted);
+      line-height: 1.6;
+      font-size: 0.94rem;
+    }
+
+    .stats {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    .stat {
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.075);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      min-height: 104px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .stat span {
+      color: var(--muted);
+      font-size: 0.84rem;
+      line-height: 1.4;
+    }
+
+    .stat strong {
+      font-size: clamp(1.45rem, 3vw, 2.2rem);
+      letter-spacing: -0.06em;
+    }
+
+    .player-grid {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 13px;
+      align-items: end;
+    }
+
+    .field {
+      display: grid;
+      gap: 8px;
+    }
+
+    .field label {
+      color: var(--muted);
+      font-size: 0.88rem;
+    }
+
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    input[type="range"] {
+      accent-color: var(--accent);
+      padding: 0;
+      border: none;
+      background: transparent;
+    }
+
+    .switch-row {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      gap: 10px;
+    }
+
+    .toggle {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 14px;
+      padding: 13px 14px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.065);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: var(--muted);
+      font-size: 0.94rem;
+    }
+
+    .toggle input {
+      width: 44px;
+      height: 24px;
+      appearance: none;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.15);
+      position: relative;
+      padding: 0;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      transition: 0.2s ease;
+    }
+
+    .toggle input::before {
+      content: "";
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      top: 2px;
+      left: 3px;
+      border-radius: 50%;
+      background: #fff;
+      transition: 0.2s ease;
+    }
+
+    .toggle input:checked {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    }
+
+    .toggle input:checked::before {
+      transform: translateX(18px);
+    }
+
+    .mini-note {
+      position: relative;
+      z-index: 1;
+      color: var(--muted-2);
+      font-size: 0.82rem;
+      line-height: 1.55;
+      margin-top: 13px;
+    }
+
+    .progress-bar {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      margin-top: 14px;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent-2), var(--accent-3));
+      transition: width 0.35s ease;
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(20px);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 100;
+      padding: 13px 16px;
+      border-radius: 999px;
+      background: rgba(8, 10, 22, 0.82);
+      border: 1px solid var(--border-strong);
+      backdrop-filter: blur(20px);
+      color: var(--text);
+      box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+      transition: 0.25s ease;
+      text-align: center;
+      max-width: min(92vw, 560px);
+    }
+
+    .toast.show {
+      transform: translateX(-50%) translateY(0);
+      opacity: 1;
+    }
+
+    .breathing-dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: var(--green);
+      box-shadow: 0 0 18px rgba(141, 255, 189, 0.5);
+      animation: pulse 1.6s ease-in-out infinite;
+    }
+
+    .hidden-audio {
+      display: none;
+    }
+
+    @keyframes ringGlow {
+      0%, 100% {
+        filter: drop-shadow(0 0 12px rgba(132, 243, 255, 0.16));
+      }
+      50% {
+        filter: drop-shadow(0 0 26px rgba(132, 243, 255, 0.3));
+      }
+    }
+
+    @keyframes pulse {
+      0%, 100% {
+        transform: scale(0.9);
+        opacity: 0.75;
+      }
+      50% {
+        transform: scale(1.2);
+        opacity: 1;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .hero {
+        grid-template-columns: 1fr;
+        padding-top: 42px;
+      }
+
+      .dashboard-grid {
+        grid-template-columns: repeat(6, 1fr);
+      }
+
+      .span-4,
+      .span-6,
+      .span-8 {
+        grid-column: span 6;
+      }
+
+      .timer-card {
+        order: -1;
+      }
+    }
+
+    @media (max-width: 680px) {
+      .app {
+        width: min(100% - 20px, 1180px);
+        padding-top: 12px;
+      }
+
+      .topbar {
+        position: static;
+        border-radius: 24px;
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .top-actions {
+        justify-content: flex-start;
+      }
+
+      .chip {
+        font-size: 0.78rem;
+      }
+
+      .hero {
+        padding-top: 32px;
+      }
+
+      .timer-ring-wrap {
+        width: min(310px, 100%);
+      }
+
+      .controls .btn {
+        flex: 1 1 44%;
+      }
+
+      .player-grid,
+      .stats {
+        grid-template-columns: 1fr;
+      }
+
+      .card {
+        padding: 18px;
+        border-radius: 25px;
+      }
+
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .span-4,
+      .span-6,
+      .span-8 {
+        grid-column: auto;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-logo">25</div>
+        <div class="brand-title">
+          <strong>FocusFlow</strong>
+          <span>Pomodoro Study Dashboard</span>
+        </div>
+      </div>
+
+      <div class="top-actions">
+        <div class="chip" id="todayChip">Today</div>
+        <div class="chip" id="notificationChip">Notifications: Off</div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">
+            <span class="breathing-dot"></span>
+            Deep focus mode
+          </div>
+
+          <h1>Study with a calm, glowing <span class="gradient-text">Pomodoro rhythm.</span></h1>
+
+          <p>
+            A clean 25-5-25-5-25-15 cycle with calm music, separate alarm sounds,
+            session tracking, motivational quotes, and saved progress.
+          </p>
+
+          <div class="quote-card" id="quoteBox">
+            “Start small. Stay consistent. Let the timer carry you.”
+          </div>
+        </div>
+
+        <section class="timer-card" aria-label="Pomodoro timer">
+          <div class="mode-row">
+            <div class="mode-pill" id="modeLabel">Study Time</div>
+            <div class="round-pill" id="roundLabel">Round 1 of 3</div>
+          </div>
+
+          <div class="timer-ring-wrap">
+            <div class="timer-ring" id="timerRing"></div>
+            <div class="timer-content">
+              <div class="time-display" id="timeDisplay">25:00</div>
+              <div class="session-subtitle" id="sessionSubtitle">Ready to begin your focus session</div>
+            </div>
+          </div>
+
+          <div class="task-box">
+            <label for="taskInput">Current study task</label>
+            <input id="taskInput" type="text" placeholder="Example: AI Module 2 search algorithms" />
+          </div>
+
+          <div class="controls">
+            <button class="btn btn-primary" id="startBtn">Start</button>
+            <button class="btn" id="pauseBtn">Pause</button>
+            <button class="btn" id="resetBtn">Reset</button>
+            <button class="btn" id="skipBtn">Skip Session</button>
+          </div>
+        </section>
+      </section>
+
+      <section class="dashboard-grid">
+        <section class="card span-8">
+          <div class="card-header">
+            <div>
+              <div class="kicker">Session Status</div>
+              <h2>Today’s focus progress</h2>
+            </div>
+            <button class="btn btn-danger" id="resetProgressBtn">Reset Today’s Progress</button>
+          </div>
+
+          <div class="stats">
+            <div class="stat">
+              <span>Completed study sessions today</span>
+              <strong id="completedSessions">0</strong>
+            </div>
+            <div class="stat">
+              <span>Current streak / rounds completed</span>
+              <strong id="roundsCompleted">0</strong>
+            </div>
+            <div class="stat">
+              <span>Total focus time today</span>
+              <strong id="focusTime">0m</strong>
+            </div>
+          </div>
+
+          <div class="progress-bar">
+            <div class="progress-fill" id="dailyProgressFill"></div>
+          </div>
+
+          <p class="mini-note">
+            Progress is saved in localStorage. It remains even after refreshing this file in your browser.
+          </p>
+        </section>
+
+        <section class="card span-4">
+          <div class="card-header">
+            <div>
+              <div class="kicker">Auto Flow</div>
+              <h2>Cycle settings</h2>
+            </div>
+          </div>
+
+          <div class="switch-row">
+            <label class="toggle">
+              <span>Auto-start breaks</span>
+              <input id="autoBreakToggle" type="checkbox" />
+            </label>
+
+            <label class="toggle">
+              <span>Auto-start study sessions</span>
+              <input id="autoStudyToggle" type="checkbox" />
+            </label>
+
+            <label class="toggle">
+              <span>Desktop notifications</span>
+              <input id="notificationToggle" type="checkbox" />
+            </label>
+          </div>
+
+          <p class="mini-note">
+            Browser notifications work only after permission is granted. Some browsers require the page to be opened from a local/server context.
+          </p>
+        </section>
+
+        <section class="card span-6">
+          <div class="card-header">
+            <div>
+              <div class="kicker">Calm Music</div>
+              <h2>Independent study music</h2>
+            </div>
+          </div>
+
+          <div class="player-grid">
+            <div class="field">
+              <label for="musicSelect">Music choice</label>
+              <select id="musicSelect">
+                <option value="lofi">Lo-fi Study</option>
+                <option value="rain">Rain Ambience</option>
+                <option value="piano">Soft Piano</option>
+                <option value="forest">Forest Sounds</option>
+                <option value="custom">Custom Upload</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="musicFile">Upload your own audio</label>
+              <input id="musicFile" type="file" accept="audio/*" />
+            </div>
+
+            <div class="field">
+              <label>Music controls</label>
+              <button class="btn btn-primary" id="musicPlayBtn">Play Music</button>
+            </div>
+
+            <div class="field">
+              <label for="musicVolume">Music volume</label>
+              <div class="range-row">
+                <input id="musicVolume" type="range" min="0" max="1" step="0.01" />
+                <span id="musicVolumeText">40%</span>
+              </div>
+            </div>
+
+            <label class="toggle">
+              <span>Loop music</span>
+              <input id="musicLoopToggle" type="checkbox" />
+            </label>
+          </div>
+
+          <p class="mini-note">
+            Built-in choices are generated with Web Audio so the file works offline. Replace the audio logic or add URLs later if needed.
+          </p>
+
+          <audio class="hidden-audio" id="customMusicAudio"></audio>
+        </section>
+
+        <section class="card span-6">
+          <div class="card-header">
+            <div>
+              <div class="kicker">Alarm Sound</div>
+              <h2>Separate completion alert</h2>
+            </div>
+          </div>
+
+          <div class="player-grid">
+            <div class="field">
+              <label for="alarmSelect">Alarm choice</label>
+              <select id="alarmSelect">
+                <option value="bell">Soft Bell</option>
+                <option value="beep">Digital Beep</option>
+                <option value="chime">Chime</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="alarmVolume">Alarm volume</label>
+              <div class="range-row">
+                <input id="alarmVolume" type="range" min="0" max="1" step="0.01" />
+                <span id="alarmVolumeText">70%</span>
+              </div>
+            </div>
+
+            <div class="field">
+              <label>Alarm test</label>
+              <button class="btn" id="testAlarmBtn">Test Alarm</button>
+            </div>
+          </div>
+
+          <p class="mini-note">
+            The alarm is completely separate from calm music and plays automatically when a session ends.
+          </p>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast">Saved</div>
+
+  <script>
+    /* =====================================================
+       Pomodoro Timer Logic
+       ===================================================== */
+
+    const DURATIONS = {
+      study: 25 * 60,
+      shortBreak: 5 * 60,
+      longBreak: 15 * 60
+    };
+
+    const MODES = {
+      study: "Study Time",
+      shortBreak: "Short Break",
+      longBreak: "Long Break"
+    };
+
+    const quotes = [
+      "“Start small. Stay consistent. Let the timer carry you.”",
+      "“One focused session is better than ten distracted plans.”",
+      "“You do not need motivation first. You need one clean start.”",
+      "“Twenty-five minutes can change the direction of a day.”",
+      "“Focus is a skill. Every round trains it.”",
+      "“Small effort repeated daily becomes confidence.”",
+      "“Do not chase perfect study. Chase honest study.”"
+    ];
+
+    const state = {
+      mode: "study",
+      round: 1,
+      remaining: DURATIONS.study,
+      total: DURATIONS.study,
+      isRunning: false,
+      timerId: null,
+      lastTick: null
+    };
+
+    const els = {
+      timeDisplay: document.getElementById("timeDisplay"),
+      modeLabel: document.getElementById("modeLabel"),
+      roundLabel: document.getElementById("roundLabel"),
+      sessionSubtitle: document.getElementById("sessionSubtitle"),
+      timerRing: document.getElementById("timerRing"),
+      startBtn: document.getElementById("startBtn"),
+      pauseBtn: document.getElementById("pauseBtn"),
+      resetBtn: document.getElementById("resetBtn"),
+      skipBtn: document.getElementById("skipBtn"),
+      taskInput: document.getElementById("taskInput"),
+      completedSessions: document.getElementById("completedSessions"),
+      roundsCompleted: document.getElementById("roundsCompleted"),
+      focusTime: document.getElementById("focusTime"),
+      resetProgressBtn: document.getElementById("resetProgressBtn"),
+      dailyProgressFill: document.getElementById("dailyProgressFill"),
+      quoteBox: document.getElementById("quoteBox"),
+      autoBreakToggle: document.getElementById("autoBreakToggle"),
+      autoStudyToggle: document.getElementById("autoStudyToggle"),
+      notificationToggle: document.getElementById("notificationToggle"),
+      notificationChip: document.getElementById("notificationChip"),
+      todayChip: document.getElementById("todayChip"),
+      toast: document.getElementById("toast")
+    };
+
+    function todayKey() {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+
+    function save(key, value) {
+      localStorage.setItem(key, JSON.stringify(value));
+    }
+
+    function load(key, fallback) {
+      try {
+        const value = localStorage.getItem(key);
+        return value ? JSON.parse(value) : fallback;
+      } catch {
+        return fallback;
+      }
+    }
+
+    function getTodayProgress() {
+      const all = load("pomodoroProgressByDate", {});
+      const key = todayKey();
+
+      if (!all[key]) {
+        all[key] = {
+          completedSessions: 0,
+          roundsCompleted: 0,
+          focusSeconds: 0,
+          date: key
+        };
+        save("pomodoroProgressByDate", all);
+      }
+
+      return all[key];
+    }
+
+    function setTodayProgress(progress) {
+      const all = load("pomodoroProgressByDate", {});
+      all[todayKey()] = progress;
+      save("pomodoroProgressByDate", all);
+    }
+
+    function formatTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const secs = seconds % 60;
+      return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+
+    function formatFocusTime(seconds) {
+      const mins = Math.floor(seconds / 60);
+      const hours = Math.floor(mins / 60);
+      const rem = mins % 60;
+
+      if (hours <= 0) return `${mins}m`;
+      return `${hours}h ${rem}m`;
+    }
+
+    function showToast(message) {
+      els.toast.textContent = message;
+      els.toast.classList.add("show");
+
+      clearTimeout(showToast.timeout);
+      showToast.timeout = setTimeout(() => {
+        els.toast.classList.remove("show");
+      }, 1800);
+    }
+
+    function updateUI() {
+      els.timeDisplay.textContent = formatTime(state.remaining);
+      els.modeLabel.textContent = MODES[state.mode];
+      els.roundLabel.textContent = `Round ${state.round} of 3`;
+
+      const progress = state.total > 0 ? (state.remaining / state.total) * 100 : 0;
+      document.documentElement.style.setProperty("--ring-progress", progress.toFixed(2));
+
+      if (state.isRunning) {
+        els.sessionSubtitle.textContent = state.mode === "study"
+          ? "Focus now. Keep distractions away."
+          : "Recover calmly. Your next round is loading.";
+      } else {
+        els.sessionSubtitle.textContent = state.mode === "study"
+          ? "Ready to begin your focus session"
+          : "Break is ready";
+      }
+
+      document.title = `${formatTime(state.remaining)} - ${MODES[state.mode]}`;
+
+      const progressData = getTodayProgress();
+      els.completedSessions.textContent = progressData.completedSessions;
+      els.roundsCompleted.textContent = progressData.roundsCompleted;
+      els.focusTime.textContent = formatFocusTime(progressData.focusSeconds);
+
+      const dailyGoalSeconds = 3 * DURATIONS.study;
+      const dailyPercent = Math.min(100, Math.round((progressData.focusSeconds / dailyGoalSeconds) * 100));
+      els.dailyProgressFill.style.width = dailyPercent + "%";
+    }
+
+    function setSession(mode, round = state.round) {
+      state.mode = mode;
+      state.round = round;
+      state.total = DURATIONS[mode];
+      state.remaining = DURATIONS[mode];
+      state.lastTick = null;
+      updateUI();
+    }
+
+    function startTimer() {
+      if (state.isRunning) return;
+
+      state.isRunning = true;
+      state.lastTick = Date.now();
+
+      state.timerId = setInterval(() => {
+        const now = Date.now();
+        const elapsed = Math.floor((now - state.lastTick) / 1000);
+
+        if (elapsed >= 1) {
+          state.remaining = Math.max(0, state.remaining - elapsed);
+          state.lastTick = now;
+          updateUI();
+
+          if (state.remaining <= 0) {
+            completeSession();
+          }
+        }
+      }, 250);
+
+      updateUI();
+    }
+
+    function pauseTimer() {
+      state.isRunning = false;
+      clearInterval(state.timerId);
+      state.timerId = null;
+      state.lastTick = null;
+      updateUI();
+    }
+
+    function resetCurrentSession() {
+      pauseTimer();
+      state.remaining = state.total;
+      updateUI();
+      showToast("Current session reset");
+    }
+
+    function skipSession() {
+      pauseTimer();
+      completeSession(true);
+    }
+
+    function completeSession(skipped = false) {
+      pauseTimer();
+      playAlarm();
+      notifyUser(`${MODES[state.mode]} finished`, getNextMessage());
+
+      const progress = getTodayProgress();
+
+      if (state.mode === "study" && !skipped) {
+        progress.completedSessions += 1;
+        progress.focusSeconds += DURATIONS.study;
+        els.quoteBox.textContent = quotes[progress.completedSessions % quotes.length];
+      }
+
+      if (state.mode === "longBreak" && !skipped) {
+        progress.roundsCompleted += 1;
+      }
+
+      setTodayProgress(progress);
+
+      const next = getNextSession();
+      setSession(next.mode, next.round);
+
+      showToast(getNextMessage());
+
+      const shouldAutoStart =
+        (state.mode === "study" && els.autoStudyToggle.checked) ||
+        ((state.mode === "shortBreak" || state.mode === "longBreak") && els.autoBreakToggle.checked);
+
+      if (shouldAutoStart) {
+        startTimer();
+      }
+
+      updateUI();
+    }
+
+    function getNextSession() {
+      if (state.mode === "study") {
+        if (state.round === 3) return { mode: "longBreak", round: 3 };
+        return { mode: "shortBreak", round: state.round };
+      }
+
+      if (state.mode === "shortBreak") {
+        return { mode: "study", round: state.round + 1 };
+      }
+
+      return { mode: "study", round: 1 };
+    }
+
+    function getNextMessage() {
+      if (state.mode === "study") {
+        return state.round === 3
+          ? "Study complete. Long break unlocked."
+          : "Study complete. Take a short break.";
+      }
+
+      if (state.mode === "shortBreak") {
+        return "Break finished. Back to study.";
+      }
+
+      return "Long break finished. New cycle begins.";
+    }
+
+    function notifyUser(title, body) {
+      if (!els.notificationToggle.checked) return;
+      if (!("Notification" in window)) return;
+      if (Notification.permission !== "granted") return;
+
+      new Notification(title, {
+        body,
+        silent: false
+      });
+    }
+
+    /* =====================================================
+       Settings + LocalStorage
+       ===================================================== */
+
+    function loadSettings() {
+      const settings = load("pomodoroSettings", {
+        autoBreak: false,
+        autoStudy: false,
+        notifications: false,
+        task: "",
+        musicVolume: 0.4,
+        alarmVolume: 0.7,
+        musicLoop: true,
+        musicChoice: "lofi",
+        alarmChoice: "bell"
+      });
+
+      els.autoBreakToggle.checked = settings.autoBreak;
+      els.autoStudyToggle.checked = settings.autoStudy;
+      els.notificationToggle.checked = settings.notifications;
+      els.taskInput.value = settings.task || "";
+
+      musicSelect.value = settings.musicChoice || "lofi";
+      alarmSelect.value = settings.alarmChoice || "bell";
+      musicVolume.value = settings.musicVolume ?? 0.4;
+      alarmVolume.value = settings.alarmVolume ?? 0.7;
+      musicLoopToggle.checked = settings.musicLoop ?? true;
+
+      updateVolumeLabels();
+      updateNotificationChip();
+
+      const today = new Date().toLocaleDateString("en-IN", {
+        weekday: "short",
+        day: "numeric",
+        month: "short"
+      });
+      els.todayChip.textContent = today;
+    }
+
+    function saveSettings() {
+      const settings = {
+        autoBreak: els.autoBreakToggle.checked,
+        autoStudy: els.autoStudyToggle.checked,
+        notifications: els.notificationToggle.checked,
+        task: els.taskInput.value,
+        musicVolume: Number(musicVolume.value),
+        alarmVolume: Number(alarmVolume.value),
+        musicLoop: musicLoopToggle.checked,
+        musicChoice: musicSelect.value,
+        alarmChoice: alarmSelect.value
+      };
+
+      save("pomodoroSettings", settings);
+    }
+
+    function updateNotificationChip() {
+      if (!("Notification" in window)) {
+        els.notificationChip.textContent = "Notifications: Unsupported";
+        return;
+      }
+
+      if (Notification.permission === "granted" && els.notificationToggle.checked) {
+        els.notificationChip.textContent = "Notifications: On";
+      } else if (Notification.permission === "denied") {
+        els.notificationChip.textContent = "Notifications: Blocked";
+      } else {
+        els.notificationChip.textContent = "Notifications: Off";
+      }
+    }
+
+    /* =====================================================
+       Web Audio: Calm Music Player
+       ===================================================== */
+
+    let audioCtx = null;
+    let musicNodes = [];
+    let musicPlaying = false;
+    let customAudioUrl = null;
+
+    const musicSelect = document.getElementById("musicSelect");
+    const musicFile = document.getElementById("musicFile");
+    const musicPlayBtn = document.getElementById("musicPlayBtn");
+    const musicVolume = document.getElementById("musicVolume");
+    const musicVolumeText = document.getElementById("musicVolumeText");
+    const musicLoopToggle = document.getElementById("musicLoopToggle");
+    const customMusicAudio = document.getElementById("customMusicAudio");
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      return audioCtx;
+    }
+
+    function stopGeneratedMusic() {
+      musicNodes.forEach(node => {
+        try {
+          if (node.stop) node.stop();
+          if (node.disconnect) node.disconnect();
+        } catch {}
+      });
+
+      musicNodes = [];
+    }
+
+    function stopAllMusic() {
+      stopGeneratedMusic();
+      customMusicAudio.pause();
+      musicPlaying = false;
+      musicPlayBtn.textContent = "Play Music";
+    }
+
+    function createGain(volume) {
+      const ctx = getAudioContext();
+      const gain = ctx.createGain();
+      gain.gain.value = volume;
+      gain.connect(ctx.destination);
+      return gain;
+    }
+
+    function startGeneratedMusic(type) {
+      const ctx = getAudioContext();
+      stopGeneratedMusic();
+
+      const master = createGain(Number(musicVolume.value));
+      musicNodes.push(master);
+
+      if (type === "lofi") {
+        const notes = [261.63, 329.63, 392.0, 493.88];
+        notes.forEach((freq, index) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = "sine";
+          osc.frequency.value = freq / 2;
+          gain.gain.value = 0.045;
+
+          osc.connect(gain);
+          gain.connect(master);
+          osc.start(ctx.currentTime + index * 0.15);
+
+          musicNodes.push(osc, gain);
+        });
+
+        const pad = ctx.createOscillator();
+        const padGain = ctx.createGain();
+        pad.type = "triangle";
+        pad.frequency.value = 98;
+        padGain.gain.value = 0.035;
+        pad.connect(padGain);
+        padGain.connect(master);
+        pad.start();
+        musicNodes.push(pad, padGain);
+      }
+
+      if (type === "rain") {
+        const bufferSize = 2 * ctx.sampleRate;
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = (Math.random() * 2 - 1) * 0.35;
+        }
+
+        const whiteNoise = ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+        whiteNoise.loop = true;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.value = 1100;
+
+        const gain = ctx.createGain();
+        gain.gain.value = 0.35;
+
+        whiteNoise.connect(filter);
+        filter.connect(gain);
+        gain.connect(master);
+        whiteNoise.start();
+
+        musicNodes.push(whiteNoise, filter, gain);
+      }
+
+      if (type === "piano") {
+        const melody = [392, 440, 493.88, 329.63, 392, 523.25];
+        let step = 0;
+
+        const interval = setInterval(() => {
+          if (!musicPlaying || musicSelect.value !== "piano") {
+            clearInterval(interval);
+            return;
+          }
+
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+
+          osc.type = "sine";
+          osc.frequency.value = melody[step % melody.length];
+          gain.gain.setValueAtTime(0.001, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.14, ctx.currentTime + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.2);
+
+          osc.connect(gain);
+          gain.connect(master);
+          osc.start();
+          osc.stop(ctx.currentTime + 1.25);
+
+          musicNodes.push(osc, gain);
+          step++;
+        }, 1400);
+
+        musicNodes.push({ stop: () => clearInterval(interval), disconnect: () => {} });
+      }
+
+      if (type === "forest") {
+        const base = ctx.createOscillator();
+        const baseGain = ctx.createGain();
+        base.type = "sine";
+        base.frequency.value = 174;
+        baseGain.gain.value = 0.045;
+        base.connect(baseGain);
+        baseGain.connect(master);
+        base.start();
+
+        const birdInterval = setInterval(() => {
+          if (!musicPlaying || musicSelect.value !== "forest") {
+            clearInterval(birdInterval);
+            return;
+          }
+
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = 900 + Math.random() * 900;
+
+          gain.gain.setValueAtTime(0.001, ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.08, ctx.currentTime + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.28);
+
+          osc.connect(gain);
+          gain.connect(master);
+          osc.start();
+          osc.stop(ctx.currentTime + 0.3);
+
+          musicNodes.push(osc, gain);
+        }, 2200);
+
+        musicNodes.push(base, baseGain, { stop: () => clearInterval(birdInterval), disconnect: () => {} });
+      }
+    }
+
+    async function toggleMusic() {
+      const ctx = getAudioContext();
+
+      if (ctx.state === "suspended") {
+        await ctx.resume();
+      }
+
+      if (musicPlaying) {
+        stopAllMusic();
+        return;
+      }
+
+      musicPlaying = true;
+      musicPlayBtn.textContent = "Pause Music";
+
+      if (musicSelect.value === "custom") {
+        if (!customMusicAudio.src) {
+          showToast("Upload an audio file first");
+          musicPlaying = false;
+          musicPlayBtn.textContent = "Play Music";
+          return;
+        }
+
+        customMusicAudio.volume = Number(musicVolume.value);
+        customMusicAudio.loop = musicLoopToggle.checked;
+        customMusicAudio.play();
+        return;
+      }
+
+      startGeneratedMusic(musicSelect.value);
+    }
+
+    /* =====================================================
+       Web Audio: Alarm Player
+       ===================================================== */
+
+    const alarmSelect = document.getElementById("alarmSelect");
+    const alarmVolume = document.getElementById("alarmVolume");
+    const alarmVolumeText = document.getElementById("alarmVolumeText");
+    const testAlarmBtn = document.getElementById("testAlarmBtn");
+
+    function playTone(freq, start, duration, type = "sine", volume = 0.5) {
+      const ctx = getAudioContext();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.type = type;
+      osc.frequency.value = freq;
+
+      gain.gain.setValueAtTime(0.001, ctx.currentTime + start);
+      gain.gain.exponentialRampToValueAtTime(volume, ctx.currentTime + start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + start + duration);
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.start(ctx.currentTime + start);
+      osc.stop(ctx.currentTime + start + duration + 0.05);
+    }
+
+    function playAlarm() {
+      const volume = Number(alarmVolume.value);
+      const type = alarmSelect.value;
+
+      if (type === "bell") {
+        playTone(660, 0, 0.9, "sine", volume * 0.36);
+        playTone(990, 0.05, 1.1, "sine", volume * 0.18);
+      }
+
+      if (type === "beep") {
+        playTone(880, 0, 0.18, "square", volume * 0.25);
+        playTone(880, 0.28, 0.18, "square", volume * 0.25);
+        playTone(880, 0.56, 0.18, "square", volume * 0.25);
+      }
+
+      if (type === "chime") {
+        playTone(523.25, 0, 0.38, "sine", volume * 0.25);
+        playTone(659.25, 0.2, 0.42, "sine", volume * 0.22);
+        playTone(783.99, 0.42, 0.72, "sine", volume * 0.18);
+      }
+    }
+
+    function updateVolumeLabels() {
+      musicVolumeText.textContent = `${Math.round(Number(musicVolume.value) * 100)}%`;
+      alarmVolumeText.textContent = `${Math.round(Number(alarmVolume.value) * 100)}%`;
+
+      customMusicAudio.volume = Number(musicVolume.value);
+      customMusicAudio.loop = musicLoopToggle.checked;
+
+      const master = musicNodes.find(node => node.gain);
+      if (master && master.gain) {
+        master.gain.value = Number(musicVolume.value);
+      }
+    }
+
+    /* =====================================================
+       Event Listeners
+       ===================================================== */
+
+    els.startBtn.addEventListener("click", startTimer);
+    els.pauseBtn.addEventListener("click", pauseTimer);
+    els.resetBtn.addEventListener("click", resetCurrentSession);
+    els.skipBtn.addEventListener("click", skipSession);
+
+    els.resetProgressBtn.addEventListener("click", () => {
+      setTodayProgress({
+        completedSessions: 0,
+        roundsCompleted: 0,
+        focusSeconds: 0,
+        date: todayKey()
+      });
+
+      updateUI();
+      showToast("Today's progress reset");
+    });
+
+    els.taskInput.addEventListener("input", saveSettings);
+
+    els.autoBreakToggle.addEventListener("change", saveSettings);
+    els.autoStudyToggle.addEventListener("change", saveSettings);
+
+    els.notificationToggle.addEventListener("change", async () => {
+      if (els.notificationToggle.checked && "Notification" in window && Notification.permission === "default") {
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+          els.notificationToggle.checked = false;
+        }
+      }
+
+      saveSettings();
+      updateNotificationChip();
+    });
+
+    musicPlayBtn.addEventListener("click", toggleMusic);
+
+    musicSelect.addEventListener("change", () => {
+      saveSettings();
+
+      if (musicPlaying) {
+        stopAllMusic();
+        toggleMusic();
+      }
+    });
+
+    musicFile.addEventListener("change", () => {
+      const file = musicFile.files[0];
+      if (!file) return;
+
+      if (customAudioUrl) {
+        URL.revokeObjectURL(customAudioUrl);
+      }
+
+      customAudioUrl = URL.createObjectURL(file);
+      customMusicAudio.src = customAudioUrl;
+      musicSelect.value = "custom";
+      saveSettings();
+      showToast("Custom audio loaded");
+    });
+
+    musicVolume.addEventListener("input", () => {
+      updateVolumeLabels();
+      saveSettings();
+    });
+
+    musicLoopToggle.addEventListener("change", () => {
+      customMusicAudio.loop = musicLoopToggle.checked;
+      saveSettings();
+    });
+
+    customMusicAudio.addEventListener("ended", () => {
+      if (!musicLoopToggle.checked) {
+        musicPlaying = false;
+        musicPlayBtn.textContent = "Play Music";
+      }
+    });
+
+    alarmSelect.addEventListener("change", saveSettings);
+
+    alarmVolume.addEventListener("input", () => {
+      updateVolumeLabels();
+      saveSettings();
+    });
+
+    testAlarmBtn.addEventListener("click", () => {
+      playAlarm();
+      showToast("Alarm tested");
+    });
+
+    window.addEventListener("beforeunload", () => {
+      document.title = "Pomodoro Study Timer";
+    });
+
+    /* =====================================================
+       Init
+       ===================================================== */
+
+    loadSettings();
+    setSession("study", 1);
+    updateUI();
+  </script>
+</body>
+</html>
